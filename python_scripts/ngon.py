@@ -2,8 +2,8 @@
 
 # imports
 import math as ma
-import matplotlib.pyplot as plt
-#import pcbnew
+#import matplotlib.pyplot as plt
+import pcbnew
 
 # definitions
 def createNgon(n, r, xoffset=0, yoffset=0):   # create regular n-gon nith n sides and a circumference of r
@@ -51,15 +51,27 @@ def calcN(r, wire_width, clearance):
             break
     return n-2
     
-def createTracks(x, y):
+def createTracks(x, y, wire_width=1000000):
     pcb = pcbnew.GetBoard()
-    for i in range(len(x)):
-        t = pcbnew.TRACK(pcb)
-        pcb.Add(t)
-        t.SetStart(pcbnew.wxPointMM(round(x[i],2), round(y[i],2)))
-        t.SetEnd(pcbnew.wxPointMM(round(x[i+1],2), round(y[i+1],2)))
-        t.SetNetCode(i)
-        t.SetLayer(31)
+    
+    #get layer table
+    layertable = {}
+    numlayers = pcbnew.LAYER_ID_COUNT
+    for i in range(numlayers):
+        layertable[i] = pcb.GetLayerName(i)
+        print("{} {}".format(i, pcb.GetLayerName(i)))
+        
+    # create tracks
+    for lay in [0, 31]:
+        for i in range(len(x)):
+            t = pcbnew.TRACK(pcb)
+            t.SetStart(pcbnew.wxPointMM(round(x[i-1],2), round(y[i-1],2)))
+            t.SetEnd(pcbnew.wxPointMM(round(x[i],2), round(y[i],2)))
+            t.SetWidth(int(wire_width))
+            t.SetLayer(lay)
+            pcb.Add(t)
+            print('Wire Generation Done!')
+        
         
 def plot(x, y): # plot meander using pyplot
     plt.figure(num=1, figsize=(8, 8), dpi=127, facecolor='w', edgecolor='k')
@@ -71,10 +83,12 @@ def plot(x, y): # plot meander using pyplot
 wire_width = 0.2    # Track width
 clearance = 0.2     # min. clearance between Tracks
 #n=100   # n has to be even
-r1=20   # circumference of inner ngon
-r2=50   # circumference of outer ngon
+r1=10   # circumference of inner ngon
+r2=30   # circumference of outer ngon
 
 # create circular meander
 n = calcN(r1, wire_width, clearance)    # calculate max n to comply wire with and clearance
-x, y, l = createCirMeander(n, r1, r2, shift=0, xoffset=20, yoffset=20)
-plot(x,y)
+x, y, l = createCirMeander(n, r1, r2, shift=4, xoffset=100, yoffset=100)
+createTracks(x, y, wire_width=wire_width*1e6)
+#plot(x,y)
+
